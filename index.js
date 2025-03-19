@@ -27,20 +27,30 @@ app.get("/links", async (req, res) => {
   }
 });
 
-// Add a new YouTube link
+// Add a list of YouTube links
 app.post("/links", async (req, res) => {
-  const { url } = req.body;
-  if (!url) return res.status(400).json({ error: "URL is required" });
+  const { urls } = req.body; // Expecting an array of URLs
+  if (!urls || !Array.isArray(urls) || urls.length === 0) {
+    return res.status(400).json({ error: "A list of URLs is required" });
+  }
+  
   try {
     await client.connect();
     const db = client.db(dbName);
     const collection = db.collection(collectionName);
-    await collection.insertOne({ url });
-    res.status(201).json({ message: "Link added successfully" });
+
+    // Prepare the links to be inserted
+    const links = urls.map(url => ({ url }));
+
+    // Insert all links at once
+    await collection.insertMany(links);
+    
+    res.status(201).json({ message: `${urls.length} links added successfully` });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
+
 
 // Start server
 app.listen(port, () => {
